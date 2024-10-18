@@ -22,10 +22,10 @@ public class PersonService {
         return personRepository.save(person);
     }
 
-    @Transactional
-    public Person updateAndWaitAndGetPerson(Person person) throws InterruptedException {
+    public void waitAndUpdateById(long id, int age) throws InterruptedException {
+        Thread.sleep(100);
+        Person person = personRepository.findById(id).orElse(null);
+        person.setAge(age);
         personRepository.save(person);
-        Thread.currentThread().wait(1000);
-        return personRepository.findById(person.getId()).orElse(null);
     }
 }

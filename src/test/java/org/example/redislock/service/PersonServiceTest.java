@@ -23,16 +23,18 @@ class PersonServiceTest {
     @Test
     @DisplayName("레디스에서 읽기에 대한 락이 보장되지 않는다.")
     void failWithConcurrencyIssue() throws InterruptedException {
+        // given
+        final int expect = 12;
         final Person person = new Person(1L, "철수", 10);
         personService.savePerson(person);
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         CountDownLatch countDownLatch = new CountDownLatch(2);
 
+        // when
         executorService.execute(
                 () -> {
-                    person.setAge(12);
                     try {
-                        personService.updateAndWaitAndGetPerson(person);
+                        personService.waitAndUpdateById(person.getId(), expect);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -40,6 +42,7 @@ class PersonServiceTest {
                     }
                 }
         );
+
         executorService.execute(
                 () -> {
                     person.setAge(11);
@@ -47,8 +50,10 @@ class PersonServiceTest {
                     countDownLatch.countDown();
                 }
         );
+
+        // then
         countDownLatch.await();
         final Person actual = personService.getPersonById(person.getId());
-        assertThat(actual.getAge()).isEqualTo(11);
+        assertThat(actual.getAge()).isEqualTo(expect);
     }
 }
