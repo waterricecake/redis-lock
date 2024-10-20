@@ -81,7 +81,6 @@ class PersonServiceTest {
                             throw new RuntimeException(e);
                         }
                         countDownLatch.countDown();
-                        System.out.println(countDownLatch.getCount());
                     }
             );
         }
