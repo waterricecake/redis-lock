@@ -1,5 +1,6 @@
 package org.example.redislock.service;
 
+import org.assertj.core.api.Assertions;
 import org.example.redislock.domain.Person;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Import;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -67,20 +69,23 @@ class PersonServiceTest {
         int count = 100;
         ExecutorService executorService = Executors.newFixedThreadPool(count);
         CountDownLatch countDownLatch = new CountDownLatch(count);
-
+        AtomicInteger atomicInteger = new AtomicInteger(0);
         for (int i = 0; i < count; i++) {
             executorService.execute(
                     () -> {
                         try {
-                            personService.waitAndUpdateById(person.getId(), 10);
+                            personService.waitAndUpdateById(person.getId(), atomicInteger.get());
+                            atomicInteger.getAndIncrement();
                         } catch (InterruptedException e) {
+                            atomicInteger.incrementAndGet();
                             throw new RuntimeException(e);
+                        } finally {
+                            countDownLatch.countDown();
                         }
-                        countDownLatch.countDown();
-                        System.out.println(countDownLatch.getCount());
                     }
             );
         }
         countDownLatch.await();
+        Assertions.assertThat(atomicInteger.get()).isEqualTo(count);
     }
 }
