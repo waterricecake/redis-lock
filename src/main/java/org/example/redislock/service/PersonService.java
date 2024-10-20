@@ -17,40 +17,32 @@ public class PersonService {
     @Transactional
     public Person getPersonById(Long id) throws InterruptedException {
         String key = getLock(String.valueOf(id));
-        System.out.println("getPersonById lock" );
         Person person = personRepository.findById(id).orElse(null);
         unlock(String.valueOf(id), key);
-        System.out.println("getPersonById unlock" );
         return person;
     }
 
     @Transactional
     public Person savePerson(Person person) throws InterruptedException {
         String key = getLock(String.valueOf(person.getId()));
-        System.out.println("savePerson lock" );
         Person savedPerson = personRepository.save(person);
         unlock(String.valueOf(person.getId()), key);
-        System.out.println("savePerson unlock" );
         return savedPerson;
     }
 
     @Transactional
     public void waitAndUpdateById(long id, int age) throws InterruptedException {
         String key = getLock(String.valueOf(id));
-        System.out.println("waitAndUpdate lock");
         Thread.sleep(100);
         Person person = personRepository.findById(id).orElse(null);
         person.setAge(age);
         personRepository.save(person);
         unlock(String.valueOf(id), key);
-        System.out.println("waitAndUpdate unlock");
     }
 
     private String getLock(final String id) throws InterruptedException {
         String key = "random_value_" + id; // 실제로는 유니크한 랜덤값을 집어넣어야함
         while (Boolean.FALSE.equals(redisLockRepository.lock(id, key, 30_000L))) {
-            System.out.println("is Locked");
-            Thread.sleep(1000);
         }
         return key;
     }
