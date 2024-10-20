@@ -21,7 +21,7 @@ class PersonServiceTest {
     private PersonService personService;
 
     @Test
-    @DisplayName("레디스에서 읽기에 대한 락이 보장되지 않는다.")
+    @DisplayName("Redisson을 통한 Lock 구현")
     void failWithConcurrencyIssue() throws InterruptedException {
         // given
         final int expect = 12;
@@ -34,7 +34,7 @@ class PersonServiceTest {
         executorService.execute(
                 () -> {
                     try {
-                        personService.waitAndUpdateById(person.getId(), expect);
+                        personService.waitAndUpdateById(person.getId(), 11);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -43,9 +43,11 @@ class PersonServiceTest {
                 }
         );
 
+        Thread.sleep(10);
+
         executorService.execute(
                 () -> {
-                    person.setAge(11);
+                    person.setAge(expect);
                     personService.savePerson(person);
                     countDownLatch.countDown();
                 }
