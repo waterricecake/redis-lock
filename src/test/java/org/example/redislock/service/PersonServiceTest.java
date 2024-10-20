@@ -21,7 +21,7 @@ class PersonServiceTest {
     private PersonService personService;
 
     @Test
-    @DisplayName("레디스에서 읽기에 대한 락이 보장되지 않는다.")
+    @DisplayName("Spin lock에 의해 순서대로 처리된다")
     void failWithConcurrencyIssue() throws InterruptedException {
         // given
         final int expect = 12;
@@ -34,7 +34,7 @@ class PersonServiceTest {
         executorService.execute(
                 () -> {
                     try {
-                        personService.waitAndUpdateById(person.getId(), expect);
+                        personService.waitAndUpdateById(person.getId(), 11);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -45,8 +45,12 @@ class PersonServiceTest {
 
         executorService.execute(
                 () -> {
-                    person.setAge(11);
-                    personService.savePerson(person);
+                    person.setAge(expect);
+                    try {
+                        personService.savePerson(person);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                     countDownLatch.countDown();
                 }
         );
