@@ -58,4 +58,29 @@ class PersonServiceTest {
         final Person actual = personService.getPersonById(person.getId());
         assertThat(actual.getAge()).isEqualTo(expect);
     }
+
+    @Test
+    @DisplayName("성능 테스트")
+    void cpuUsage() throws InterruptedException {
+        final Person person = new Person(1L, "철수", 10);
+        personService.savePerson(person);
+        int count = 100;
+        ExecutorService executorService = Executors.newFixedThreadPool(count);
+        CountDownLatch countDownLatch = new CountDownLatch(count);
+
+        for (int i = 0; i < count; i++) {
+            executorService.execute(
+                    () -> {
+                        try {
+                            personService.waitAndUpdateById(person.getId(), 10);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        countDownLatch.countDown();
+                        System.out.println(countDownLatch.getCount());
+                    }
+            );
+        }
+        countDownLatch.await();
+    }
 }
